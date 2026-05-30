@@ -10,11 +10,41 @@ class NoteSkill(BaseSkill):
         self.user_memory_store = user_memory_store
 
     def can_handle(self, intent: Intent) -> bool:
-        return intent.name in ["add_note", "show_notes", "remove_note", "clear_notes"]
+        return intent.name in ["add_note", "show_notes", "remove_note", "clear_notes", "confirm_action", "cancel_action"]
 
     def execute(self, intent: Intent) -> Response:
         memory = self.user_memory_store.load()
         notes = memory.get("notes", [])
+
+        if intent.name == "confirm_action":
+            if self.session.pending_action != "clear_notes":
+                return Response(
+                    message="There is nothing to confirm right now.",
+                    success=False
+                ) 
+            memory["notes"] = []
+            self.user_memory_store.save(memory)
+            self.session.pending_action = None
+            self.session.pending_data = None
+
+            return Response(
+                message="All notes have been cleared.",
+                success=True
+            )
+        
+        if intent.name == "cancel_action":
+            if self.session.pending_action != "clear_notes":
+                return Response(
+                    message="There is nothing to cancel right now.",
+                    success=False
+                ) 
+            self.session.pending_action = None
+            self.session.pending_data = None
+
+            return Response(
+                message="Action cancelled.",
+                success=True
+            )
 
         if intent.name == "add_note":
             notes.append(intent.text)
@@ -33,11 +63,11 @@ class NoteSkill(BaseSkill):
                     message="you do not have any notes to clear.",
                     success=True
                 )
-            memory["notes"] = []
-            self.user_memory_store.save(memory)
+            self.session.pending_action = "clear_notes"
+            self.session.pending_data = {}
 
             return Response(
-                message="All notes have been cleared.",
+                message="Are you sure you want to clear all your notes? This action cannot be undone. Please say 'yes' to confirm or 'no' to cancel.",
                 success=True
             )
         

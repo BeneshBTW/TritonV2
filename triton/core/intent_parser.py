@@ -3,9 +3,22 @@ from triton.core.intent import Intent
 
 class IntentParser:
     def parse(self, user_input: str) -> Intent:
-        cleaned_input = user_input.lower().strip()
-
         
+        cleaned_input = user_input.lower().strip()
+        
+        if cleaned_input in ["yes", "yeah", "yep", "sure", "y", "confirm"]:
+            return Intent(
+                name="confirm_action",
+                text=user_input,
+                confidence=1.0
+            )
+        
+        if cleaned_input in ["no", "nope", "nah", "n", "deny", "cancel"]:
+            return Intent(
+                name="cancel_action",
+                text=user_input,
+                confidence=1.0
+            )
 
         if cleaned_input in ["hello", "hi", "hey"]:
             return Intent(
