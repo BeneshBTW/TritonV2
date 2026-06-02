@@ -139,6 +139,49 @@ class IntentParser:
                 text=task_number,
                 confidence=1.0
             )
+        
+        if cleaned_input.startswith("add reminder "):
+            reminder_text = user_input[13:].strip()
+
+            return Intent(
+                name="add_reminder",
+                text=reminder_text,
+                confidence=1.0
+            )
+        
+        if cleaned_input.startswith("remind me to "):
+            reminder_text = user_input[13:].strip()
+
+            return Intent(
+                name="add_reminder",
+                text=reminder_text,
+                confidence=1.0
+            )
+        
+        if cleaned_input in ["show reminders", "list reminders", "what are my reminders"]:
+            return Intent(
+                name="show_reminders",
+                text=user_input,
+                confidence=1.0
+            )
+        
+        if cleaned_input.startswith("remove reminder "):
+            reminder_number = cleaned_input.replace("remove reminder ", "").strip()
+
+            return Intent(
+                name="remove_reminder",
+                text=reminder_number,
+                confidence=1.0
+            )
+        
+        if cleaned_input.startswith("delete reminder "):
+            reminder_number = cleaned_input.replace("delete reminder ", "").strip()
+
+            return Intent(
+                name="remove_reminder",
+                text=reminder_number,
+                confidence=1.0
+            )
 
         return Intent(
             name="general_chat",
