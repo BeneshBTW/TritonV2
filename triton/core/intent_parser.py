@@ -96,9 +96,52 @@ class IntentParser:
                 text=user_input,
                 confidence=1.0
             )
+        
+        if cleaned_input.startswith("add task "):
+            task_text = user_input[9:].strip()
+
+            return Intent(
+                name="add_task",
+                text=task_text,
+                confidence=1.0
+            )
+        
+        if cleaned_input in ["show tasks", "list tasks", "what are my tasks"]:
+            return Intent(
+                name="show_tasks",
+                text=user_input,
+                confidence=1.0
+            )
+        
+        if cleaned_input.startswith("complete task "):
+            task_number = cleaned_input.replace("complete task ", "").strip()
+
+            return Intent(
+                name="complete_task",
+                text=task_number,
+                confidence=1.0
+            )
+        
+        if cleaned_input.startswith("remove task "):
+            task_number = cleaned_input.replace("remove task ", "").strip()
+
+            return Intent(
+                name="remove_task",
+                text=task_number,
+                confidence=1.0
+            )
+        
+        if cleaned_input.startswith("delete task "):
+            task_number = cleaned_input.replace("delete task ", "").strip()
+
+            return Intent(
+                name="remove_task",
+                text=task_number,
+                confidence=1.0
+            )
 
         return Intent(
             name="general_chat",
             text=user_input,
-            confidence=0.5
+            confidence=0.0
         )

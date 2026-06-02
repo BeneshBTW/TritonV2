@@ -9,12 +9,15 @@ from triton.skills.session_skill import SessionSkill
 from triton.skills.user_skill import UserSkill
 from triton.memory.user_memory_store import UserMemoryStore
 from triton.skills.note_skill import NoteSkill
+from triton.memory.task_store import TaskStore
+from triton.skills.task_skill import TaskSkill
 
 
 class Brain:
     def __init__(self):
         self.intent_parser = IntentParser()
         self.user_memory_store = UserMemoryStore()
+        self.task_store = TaskStore()
         saved_user_memory = self.user_memory_store.load()
         self.session = SessionContext()
         self.session.user_name = saved_user_memory.get("user_name")
@@ -26,6 +29,7 @@ class Brain:
                 SessionSkill(self.session),
                 UserSkill(self.session, self.user_memory_store),
                 NoteSkill(self.session, self.user_memory_store),
+                TaskSkill(self.task_store),
                 FallbackSkill()
             ]
         )
