@@ -182,6 +182,15 @@ class IntentParser:
                 text=reminder_number,
                 confidence=1.0
             )
+        
+        if cleaned_input.startswith("complete reminder "):
+            reminder_number = cleaned_input.replace("complete reminder ", "").strip()
+
+            return Intent(
+                name="complete_reminder",
+                text=reminder_number,
+                confidence=1.0
+            )
 
         return Intent(
             name="general_chat",

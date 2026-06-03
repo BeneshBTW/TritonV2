@@ -11,7 +11,8 @@ class ReminderSkill(BaseSkill):
         return intent.name in [
             "add_reminder",
             "show_reminders",
-            "remove_reminder"
+            "remove_reminder",
+            "complete_reminder"
         ]
 
     def execute(self, intent: Intent) -> Response:
@@ -40,7 +41,7 @@ class ReminderSkill(BaseSkill):
                 )
 
             reminder_text = "\n".join(
-                f"{index + 1}. {reminder['text']}"
+                f"{index + 1}. {'[x]' if reminder['completed'] else '[ ]'} {reminder['text']}"
                 for index, reminder in enumerate(reminders)
             )
 
@@ -48,6 +49,27 @@ class ReminderSkill(BaseSkill):
                 message=f"Here are your reminders:\n{reminder_text}",
                 success=True
             )
+        
+        if intent.name == "complete_reminder":
+            if not intent.text.isdigit():
+                return Response(
+                    message= "Please tell me the reminder number to complete, like: complete reminder 1",
+                    success=False
+                )
+            reminder_index = int(intent.text) - 1
+
+            if reminder_index < 0 or reminder_index >= len(reminders):
+                return Response(
+                    message="That reminder number does not exist"
+                )     
+
+            reminders[reminder_index]["completed"] = True
+            self.reminder_store.save(reminders)
+
+            return Response(
+                message=f"Completed reminder: {reminders[reminder_index]['text']}",
+                success=True
+            )   
 
         if intent.name == "remove_reminder":
             if not intent.text.isdigit():
