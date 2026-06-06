@@ -12,6 +12,9 @@ class SessionContext:
     pending_action: str | None = None
     pending_data: dict | None = None
 
+    last_undo_action: str | None = None
+    last_undo_data: dict | None = None
+
     def record_turn(self, user_input: str, intent_name: str) -> None:
         self.last_user_input = user_input
         self.last_intent_name = intent_name

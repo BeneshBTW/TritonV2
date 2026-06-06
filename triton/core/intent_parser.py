@@ -5,6 +5,13 @@ class IntentParser:
     def parse(self, user_input: str) -> Intent:
         
         cleaned_input = user_input.lower().strip()
+
+        if cleaned_input in ["undo", "undo last action", "restore last"]:
+            return Intent(
+                name="undo_action",
+                text=user_input,
+                confidence=1.0
+            )
         
         if cleaned_input in ["yes", "yeah", "yep", "sure", "y", "confirm"]:
             return Intent(
@@ -191,6 +198,14 @@ class IntentParser:
                 text=reminder_number,
                 confidence=1.0
             )
+        
+        if cleaned_input in ["clear reminders", "delete all reminders", "remove all reminders"]:
+            return Intent(
+                name="clear_reminders",
+                text=user_input,
+                confidence=1.0
+            )
+        
 
         return Intent(
             name="general_chat",

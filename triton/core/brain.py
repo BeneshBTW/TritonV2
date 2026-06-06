@@ -32,8 +32,8 @@ class Brain:
                 SessionSkill(self.session),
                 UserSkill(self.session, self.user_memory_store),
                 NoteSkill(self.session, self.user_memory_store),
-                TaskSkill(self.task_store),
-                ReminderSkill(self.reminder_store),
+                TaskSkill(self.session, self.task_store),
+                ReminderSkill(self.session, self.reminder_store),
                 FallbackSkill()
             ]
         )

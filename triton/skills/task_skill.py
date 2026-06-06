@@ -4,10 +4,14 @@ from triton.skills.base_skill import BaseSkill
 
 
 class TaskSkill(BaseSkill):
-    def __init__(self, task_store):
+    def __init__(self, session, task_store):
+        self.session = session
         self.task_store = task_store
 
     def can_handle(self, intent: Intent) -> bool:
+        if intent.name == "undo_action":
+            return self.session.last_undo_action == "restore_task"
+
         return intent.name in [
             "add_task",
             "show_tasks",
@@ -17,6 +21,27 @@ class TaskSkill(BaseSkill):
 
     def execute(self, intent: Intent) -> Response:
         tasks = self.task_store.load()
+
+        if intent.name == "undo_action":
+            if self.session.last_undo_action != "restore_task":
+                return Response(
+                    message= "There is nothing to undo right now.",
+                    success=False
+                )
+            
+            task = self.session.last_undo_data["task"]
+            index = self.session.last_undo_data["index"]
+
+            tasks.insert(index, task)
+            self.task_store.save(tasks)
+
+            self.session.last_undo_action = None
+            self.session.last_undo_data = None
+
+            return Response(
+                message=f"Restored Task: {task['title']}",
+                success=True
+            )
 
         if intent.name == "add_task":
             task = {
@@ -88,6 +113,13 @@ class TaskSkill(BaseSkill):
                 )
 
             removed_task = tasks.pop(task_index)
+
+            self.session.last_undo_action = "restore_task"
+            self.session.last_undo_data = {
+                "index" :  task_index,
+                "task" : removed_task
+            }
+
             self.task_store.save(tasks)
 
             return Response(

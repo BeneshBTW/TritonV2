@@ -10,11 +10,40 @@ class NoteSkill(BaseSkill):
         self.user_memory_store = user_memory_store
 
     def can_handle(self, intent: Intent) -> bool:
-        return intent.name in ["add_note", "show_notes", "remove_note", "clear_notes", "confirm_action", "cancel_action"]
+        if intent.name in ["confirm_action", "cancel_action"]:
+            return self.session.pending_action == "clear_notes"
+        
+        if intent.name == "undo_action":
+            return self.session.last_undo_action == "restore_note"
+        
+        return intent.name in ["add_note", "show_notes", "remove_note", "clear_notes"]
 
     def execute(self, intent: Intent) -> Response:
         memory = self.user_memory_store.load()
         notes = memory.get("notes", [])
+
+        if intent.name == "undo_action":
+            if self.session.last_undo_action != "restore_note":
+                return Response(
+                    message="There is nothing to undo right now.",
+                    success=False
+                )
+            
+            note = self.session.last_undo_data["note"]
+            index = self.session.last_undo_data["index"]
+
+            notes.insert(index, note)
+
+            memory["notes"] = notes
+            self.user_memory_store.save(memory)
+
+            self.session.last_undo_action = None
+            self.session.last_undo_data = None
+
+            return Response(
+                message=f"Restore note: {note}",
+                success=True
+            )
 
         if intent.name == "confirm_action":
             if self.session.pending_action != "clear_notes":
@@ -87,6 +116,12 @@ class NoteSkill(BaseSkill):
                 )
             
             removed_note = notes.pop(note_index)
+
+            self.session.last_undo_action = "restore_note"
+            self.session.last_undo_data = {
+                "index": note_index,
+                "note" : removed_note
+            }
 
             memory["notes"] = notes
             self.user_memory_store.save(memory)
