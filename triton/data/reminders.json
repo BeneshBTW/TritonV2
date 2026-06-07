@@ -1,17 +1,1 @@
-[
-    {
-        "text": "t1",
-        "due": null,
-        "completed": false
-    },
-    {
-        "text": "t2",
-        "due": null,
-        "completed": false
-    },
-    {
-        "text": "t3",
-        "due": null,
-        "completed": false
-    }
-]
+[]

@@ -23,7 +23,8 @@ class ReminderSkill(BaseSkill):
             "complete_reminder",
             "clear_reminders",
             "confirm_action",
-            "cancel_action"
+            "cancel_action",
+            "add_timed_reminder",
         ]
 
     def execute(self, intent: Intent) -> Response:
@@ -111,6 +112,21 @@ class ReminderSkill(BaseSkill):
 
             return Response(
                 message=f"Reminder added: {intent.text}",
+                success=True
+            )
+        
+        if intent.name == "add_timed_reminder":
+            reminder ={
+                "text": intent.text,
+                "due": intent.data["due"],
+                "completed": False,
+                "delivered": False
+            }
+            reminders.append(reminder)
+            self.reminder_store.save(reminders)
+
+            return Response(
+                message=f"Timed reminder added: {intent.text}",
                 success=True
             )
 

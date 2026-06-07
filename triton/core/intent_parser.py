@@ -1,4 +1,5 @@
 from triton.core.intent import Intent
+from datetime import datetime, timedelta
 
 
 class IntentParser:
@@ -156,7 +157,30 @@ class IntentParser:
                 confidence=1.0
             )
         
-        if cleaned_input.startswith("remind me to "):
+        if cleaned_input.startswith("remind me in ") and " to " in cleaned_input:
+            after_in = cleaned_input.replace("remind me in ", "", 1)
+
+            time_part, reminder_text = after_in.split(" to ", 1)
+
+            words = time_part.split()
+
+            if len(words) >= 2 and words[0].isdigit():
+                amount = int(words[0])
+                unit = words[1]
+
+                if unit in ["minute", "minutes"]:
+                    due_time = datetime.now() + timedelta(minutes=amount)
+
+                    return Intent(
+                        name="add_timed_reminder",
+                        text=reminder_text,
+                        confidence=1.0,
+                        data={
+                            "due": due_time.isoformat()
+                        }
+                    )
+        
+        if cleaned_input.startswith("remind me to ") and " to " in cleaned_input:
             reminder_text = user_input[13:].strip()
 
             return Intent(
