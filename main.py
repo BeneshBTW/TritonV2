@@ -4,12 +4,14 @@ from triton.memory.reminder_store import ReminderStore
 
 import threading
 import time
+import winsound
 
 def reminder_loop(reminder_engine: ReminderEngine):
     while True:
         due_reminders = reminder_engine.check_due_reminders()
 
         for reminder_text in due_reminders:
+            winsound.Beep(1000, 700)
             print(f"\n🔔 Reminder: {reminder_text}")
 
         time.sleep(5)

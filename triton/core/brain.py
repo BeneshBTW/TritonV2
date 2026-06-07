@@ -13,11 +13,13 @@ from triton.memory.task_store import TaskStore
 from triton.skills.task_skill import TaskSkill
 from triton.memory.reminder_store import ReminderStore
 from triton.skills.reminder_skill import ReminderSkill
+from triton.llm.ai_interpreter import AIInterpreter
 
 
 class Brain:
     def __init__(self):
         self.intent_parser = IntentParser()
+        self.ai_interpreter = AIInterpreter()
         self.user_memory_store = UserMemoryStore()
         self.task_store = TaskStore()
         self.reminder_store = ReminderStore()
@@ -39,7 +41,8 @@ class Brain:
         )
 
     def process(self, user_input: str) -> Response:
-        intent = self.intent_parser.parse(user_input)
+        normalized_input = self.ai_interpreter.normalize(user_input)
+        intent = self.intent_parser.parse(normalized_input)
 
         self.session.record_turn(
             user_input=user_input,
