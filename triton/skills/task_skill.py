@@ -4,9 +4,9 @@ from triton.skills.base_skill import BaseSkill
 
 
 class TaskSkill(BaseSkill):
-    def __init__(self, session, task_store):
+    def __init__(self, session, task_service):
         self.session = session
-        self.task_store = task_store
+        self.task_service = task_service
 
     def can_handle(self, intent: Intent) -> bool:
         if intent.name == "undo_action":
@@ -15,45 +15,58 @@ class TaskSkill(BaseSkill):
         return intent.name in [
             "add_task",
             "show_tasks",
+            "show_incomplete_tasks",
             "complete_task",
             "remove_task"
         ]
 
     def execute(self, intent: Intent) -> Response:
-        tasks = self.task_store.load()
+        tasks = self.task_service.get_tasks()
 
         if intent.name == "undo_action":
             if self.session.last_undo_action != "restore_task":
                 return Response(
-                    message= "There is nothing to undo right now.",
+                    message="There is nothing to undo right now.",
                     success=False
                 )
-            
+
             task = self.session.last_undo_data["task"]
             index = self.session.last_undo_data["index"]
 
-            tasks.insert(index, task)
-            self.task_store.save(tasks)
+            self.task_service.restore_task(index, task)
 
             self.session.last_undo_action = None
             self.session.last_undo_data = None
 
             return Response(
-                message=f"Restored Task: {task['title']}",
+                message=f"Restored task: {task['title']}",
                 success=True
             )
 
         if intent.name == "add_task":
-            task = {
-                "title": intent.text,
-                "completed": False
-            }
-
-            tasks.append(task)
-            self.task_store.save(tasks)
+            task = self.task_service.add_task(intent.text)
 
             return Response(
-                message=f"Task added: {intent.text}",
+                message=f"Task added: {task['title']}",
+                success=True
+            )
+        
+        if intent.name == "show_incomplete_tasks":
+            incomplete_tasks = self.task_service.get_incomplete_tasks()
+
+            if len(incomplete_tasks) == 0:
+                return Response(
+                    message="You do not have any incomplete tasks.",
+                    success=True
+                )
+            
+            task_text = "\n".join(
+                f"{index + 1}. {task['title']}"
+                for index, task in enumerate(incomplete_tasks)
+            )
+
+            return Response(
+                message=f"You still need to do: \n{task_text}",
                 success=True
             )
 
@@ -81,19 +94,16 @@ class TaskSkill(BaseSkill):
                     success=False
                 )
 
-            task_index = int(intent.text) - 1
+            completed_task = self.task_service.complete_task(int(intent.text))
 
-            if task_index < 0 or task_index >= len(tasks):
+            if completed_task is None:
                 return Response(
                     message="That task number does not exist.",
                     success=False
                 )
 
-            tasks[task_index]["completed"] = True
-            self.task_store.save(tasks)
-
             return Response(
-                message=f"Completed task: {tasks[task_index]['title']}",
+                message=f"Completed task: {completed_task['title']}",
                 success=True
             )
 
@@ -104,26 +114,19 @@ class TaskSkill(BaseSkill):
                     success=False
                 )
 
-            task_index = int(intent.text) - 1
+            removed_data = self.task_service.remove_task(int(intent.text))
 
-            if task_index < 0 or task_index >= len(tasks):
+            if removed_data is None:
                 return Response(
                     message="That task number does not exist.",
                     success=False
                 )
 
-            removed_task = tasks.pop(task_index)
-
             self.session.last_undo_action = "restore_task"
-            self.session.last_undo_data = {
-                "index" :  task_index,
-                "task" : removed_task
-            }
-
-            self.task_store.save(tasks)
+            self.session.last_undo_data = removed_data
 
             return Response(
-                message=f"Removed task: {removed_task['title']}",
+                message=f"Removed task: {removed_data['task']['title']}",
                 success=True
             )
 

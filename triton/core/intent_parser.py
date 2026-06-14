@@ -121,6 +121,13 @@ class IntentParser:
                 confidence=1.0
             )
         
+        if cleaned_input in ["show incomplete tasks", "show unfinished tasks"]:
+            return Intent(
+                name="show_incomplete_tasks",
+                text=user_input,
+                confidence=1.0
+            )
+        
         if cleaned_input.startswith("complete task "):
             task_number = cleaned_input.replace("complete task ", "").strip()
 

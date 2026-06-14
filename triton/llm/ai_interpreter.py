@@ -3,13 +3,17 @@ class AIInterpreter:
         cleaned_input = user_input.lower().strip()
 
         if cleaned_input in [
-            "what do i need to do",
             "what are my tasks",
-            "what do i still need to do",
-            "what should i work on",
             "show me my tasks"
         ]:
             return "show tasks"
+        
+        if cleaned_input in [
+            "what do i still need to do",
+            "what should i work on",
+            "what do i need to do"
+        ]:
+            return "show incomplete tasks"
 
         if cleaned_input in [
             "what did i write down",

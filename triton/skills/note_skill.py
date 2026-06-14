@@ -5,9 +5,9 @@ from triton.skills.base_skill import BaseSkill
 
 
 class NoteSkill(BaseSkill):
-    def __init__(self, session: SessionContext, user_memory_store):
+    def __init__(self, session: SessionContext, note_service):
         self.session = session
-        self.user_memory_store = user_memory_store
+        self.note_service = note_service
 
     def can_handle(self, intent: Intent) -> bool:
         if intent.name in ["confirm_action", "cancel_action"]:
@@ -19,8 +19,7 @@ class NoteSkill(BaseSkill):
         return intent.name in ["add_note", "show_notes", "remove_note", "clear_notes"]
 
     def execute(self, intent: Intent) -> Response:
-        memory = self.user_memory_store.load()
-        notes = memory.get("notes", [])
+        notes = self.note_service.get_notes()
 
         if intent.name == "undo_action":
             if self.session.last_undo_action != "restore_note":
@@ -32,11 +31,8 @@ class NoteSkill(BaseSkill):
             note = self.session.last_undo_data["note"]
             index = self.session.last_undo_data["index"]
 
-            notes.insert(index, note)
-
-            memory["notes"] = notes
-            self.user_memory_store.save(memory)
-
+            self.note_service.restore_note(index, note)
+            
             self.session.last_undo_action = None
             self.session.last_undo_data = None
 
@@ -51,8 +47,9 @@ class NoteSkill(BaseSkill):
                     message="There is nothing to confirm right now.",
                     success=False
                 ) 
-            memory["notes"] = []
-            self.user_memory_store.save(memory)
+            
+            self.note_service.clear_notes()
+
             self.session.pending_action = None
             self.session.pending_data = None
 
@@ -76,10 +73,7 @@ class NoteSkill(BaseSkill):
             )
 
         if intent.name == "add_note":
-            notes.append(intent.text)
-
-            memory["notes"] = notes
-            self.user_memory_store.save(memory)
+            save_note = self.note_service.add_note(intent.text)
 
             return Response(
                 message=f"Note saved: {intent.text}",
@@ -103,31 +97,23 @@ class NoteSkill(BaseSkill):
         if intent.name == "remove_note":
             if not intent.text.isdigit():
                 return Response(
-                    message="Please tell me the note numeber to remove, like: remove note 1",
+                    message="Please tell me the note numeber to remove. (ex. remove note)",
                     success=False
-            )
+                )
 
-            note_index = int(intent.text) - 1
+            removed_data = self.note_service.remove_note(int(intent.text))
 
-            if note_index < 0 or note_index >= len(notes):
+            if removed_data is None:
                 return Response(
-                    message="That note number does not exist.",
+                    message= "That note number does not exist.",
                     success=False
                 )
             
-            removed_note = notes.pop(note_index)
-
             self.session.last_undo_action = "restore_note"
-            self.session.last_undo_data = {
-                "index": note_index,
-                "note" : removed_note
-            }
-
-            memory["notes"] = notes
-            self.user_memory_store.save(memory)
+            self.session.last_undo_data = removed_data
 
             return Response(
-                message=f"Removed note: {removed_note}",
+                message=f"Removed note: {removed_data['note']}",
                 success=True
             )
         
