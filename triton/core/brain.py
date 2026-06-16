@@ -16,6 +16,7 @@ from triton.skills.reminder_skill import ReminderSkill
 from triton.llm.ai_interpreter import AIInterpreter
 from triton.services.task_service import TaskService
 from triton.services.note_service import NoteService 
+from triton.services.reminder_service import ReminderService
 
 
 class Brain:
@@ -27,6 +28,7 @@ class Brain:
         self.task_store = TaskStore()
         self.task_service = TaskService(self.task_store)
         self.reminder_store = ReminderStore()
+        self.reminder_service = ReminderService(self.reminder_store)
         saved_user_memory = self.user_memory_store.load()
         self.session = SessionContext()
         self.session.user_name = saved_user_memory.get("user_name")
@@ -39,7 +41,7 @@ class Brain:
                 UserSkill(self.session, self.user_memory_store),
                 NoteSkill(self.session, self.note_service),
                 TaskSkill(self.session, self.task_service),
-                ReminderSkill(self.session, self.reminder_store),
+                ReminderSkill(self.session, self.reminder_service),
                 FallbackSkill()
             ]
         )

@@ -16,7 +16,7 @@ class ReminderEngine:
             if reminder["completed"]:
                 continue
 
-            if reminder["delivered"]:
+            if reminder.get("delivered", False):
                 continue
 
             if reminder["due"] is None:

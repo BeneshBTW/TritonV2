@@ -2,12 +2,14 @@ from triton.core.intent import Intent
 from triton.core.response import Response
 from triton.skills.base_skill import BaseSkill
 from triton.core.session import SessionContext
+from triton.services.reminder_service import ReminderService
 
 
 class ReminderSkill(BaseSkill):
-    def __init__(self ,session ,reminder_store):
+
+    def __init__(self ,session , reminder_service):
         self.session = session
-        self.reminder_store = reminder_store
+        self.reminder_service = reminder_service
 
     def can_handle(self, intent: Intent) -> bool:
         if intent.name in ["confirm_action", "cancel_action"]:
@@ -28,15 +30,14 @@ class ReminderSkill(BaseSkill):
         ]
 
     def execute(self, intent: Intent) -> Response:
-        reminders = self.reminder_store.load()
+        reminders = self.reminder_service.get_reminders()
 
         if intent.name == "undo_action":
             if self.session.last_undo_action == "restore_reminder":
                 reminder = self.session.last_undo_data["reminder"]
                 index = self.session.last_undo_data["index"]
 
-                reminders.insert(index, reminder)
-                self.reminder_store.save(reminders)
+                self.reminder_service.restore_reminder(index, reminder)
 
                 self.session.last_undo_action = None
                 self.session.last_undo_data = None
@@ -49,7 +50,7 @@ class ReminderSkill(BaseSkill):
             if self.session.last_undo_action == "restore_all_reminders":
                 restored_reminders = self.session.last_undo_data["reminders"]
 
-                self.reminder_store.save(restored_reminders)
+                self.reminder_service.restore_all_reminders(restored_reminders)
 
                 self.session.last_undo_action = None
                 self.session.last_undo_data = None
@@ -76,7 +77,7 @@ class ReminderSkill(BaseSkill):
                 "reminders": reminders.copy()
             }
             
-            self.reminder_store.save([])
+            self.reminder_service.clear_reminders()
 
             self.session.pending_action = None
             self.session.pending_data = None
@@ -101,33 +102,22 @@ class ReminderSkill(BaseSkill):
             )
 
         if intent.name == "add_reminder":
-            reminder = {
-                "text": intent.text,
-                "due": None,
-                "completed": False
-            }
-
-            reminders.append(reminder)
-            self.reminder_store.save(reminders)
+            reminder = self.reminder_service.add_reminder(intent.text)
 
             return Response(
-                message=f"Reminder added: {intent.text}",
+                message=f"Reminder added: {reminder['text']}",
                 success=True
             )
         
         if intent.name == "add_timed_reminder":
-            reminder ={
-                "text": intent.text,
-                "due": intent.data["due"],
-                "completed": False,
-                "delivered": False
-            }
-            reminders.append(reminder)
-            self.reminder_store.save(reminders)
+            reminder = self.reminder_service.add_timed_reminder(
+                intent.text,
+                intent.data["due"]
+            )
 
             return Response(
-                message=f"Timed reminder added: {intent.text}",
-                success=True
+                message=f"Timed reminder added: {reminder['text']}",
+                success= True
             )
 
         if intent.name == "show_reminders":
@@ -153,17 +143,16 @@ class ReminderSkill(BaseSkill):
                     message= "Please tell me the reminder number to complete, like: complete reminder 1",
                     success=False
                 )
-            reminder_index = int(intent.text) - 1
-            if reminder_index < 0 or reminder_index >= len(reminders):
+            
+            completed_reminder = self.reminder_service.complete_reminder(int(intent.text))
+            if completed_reminder is None:
                 return Response(
-                    message="That reminder number does not exist"
-                )     
-
-            reminders[reminder_index]["completed"] = True
-            self.reminder_store.save(reminders)
-
+                    message="That reminder number does not exist.",
+                    success=False
+                )
+            
             return Response(
-                message=f"Completed reminder: {reminders[reminder_index]['text']}",
+                message=f"Completed reminder: {completed_reminder['text']}",
                 success=True
             )   
 
@@ -171,28 +160,22 @@ class ReminderSkill(BaseSkill):
             if not intent.text.isdigit():
                 return Response(
                     message="Please tell me the reminder number to remove, like: remove reminder 1",
-                    success=False
+                    success= False
                 )
+            
+            removed_data = self.reminder_service.remove_reminder(int(intent.text))
 
-            reminder_index = int(intent.text) - 1
-
-            if reminder_index < 0 or reminder_index >= len(reminders):
+            if removed_data is None:
                 return Response(
                     message="That reminder number does not exist.",
-                    success=False
+                    success=True
                 )
-
-            removed_reminder = reminders.pop(reminder_index)
-
+            
             self.session.last_undo_action = "restore_reminder"
-            self.session.last_undo_data = {
-                "index" : reminder_index,
-                "reminder" : removed_reminder
-            }
-            self.reminder_store.save(reminders)
+            self.session.last_undo_data = removed_data
 
             return Response(
-                message=f"Removed reminder: {removed_reminder['text']}",
+                message=f"Removed reminder: {removed_data['reminder']['text']}",
                 success=True
             )
         
