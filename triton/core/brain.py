@@ -17,12 +17,14 @@ from triton.llm.ai_interpreter import AIInterpreter
 from triton.services.task_service import TaskService
 from triton.services.note_service import NoteService 
 from triton.services.reminder_service import ReminderService
+from triton.llm.ollama_interpreter import OllamaInterpreter
 
 
 class Brain:
     def __init__(self):
         self.intent_parser = IntentParser()
         self.ai_interpreter = AIInterpreter()
+        self.ollama_interpreter = OllamaInterpreter()
         self.user_memory_store = UserMemoryStore()
         self.note_service = NoteService(self.user_memory_store)
         self.task_store = TaskStore()
@@ -32,6 +34,7 @@ class Brain:
         saved_user_memory = self.user_memory_store.load()
         self.session = SessionContext()
         self.session.user_name = saved_user_memory.get("user_name")
+        
 
         self.router = Router(
             skills=[
@@ -48,6 +51,11 @@ class Brain:
 
     def process(self, user_input: str) -> Response:
         normalized_input = self.ai_interpreter.normalize(user_input)
+
+        if normalized_input == user_input:
+            print("using Ollama....")
+            normalized_input = self.ollama_interpreter.normalize(user_input)
+
         intent = self.intent_parser.parse(normalized_input)
 
         self.session.record_turn(

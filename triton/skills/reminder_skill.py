@@ -1,8 +1,6 @@
 from triton.core.intent import Intent
 from triton.core.response import Response
 from triton.skills.base_skill import BaseSkill
-from triton.core.session import SessionContext
-from triton.services.reminder_service import ReminderService
 
 
 class ReminderSkill(BaseSkill):
